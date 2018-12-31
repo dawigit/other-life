@@ -1220,14 +1220,13 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 	if (flags)
 		LOG_ERROR("%s: flags=%d set but not yet supported\n", __FUNCTION__, flags );
 	
-	/* Close popup if the same id 
-	 * return on size==0
-	 * */
+	/* close popup if the same id */
 	if ( popup_node_find_by_id( popup_id ) != NULL ) {
 		popup_node_destroy(popup_node_find_by_id( popup_id ));
-		if( !size ) {
-			return;
-		}
+	}
+	/* return on size==0 */
+	if( !size ) {
+		return;
 	}
 
 	new_popup = popup_create( title, popup_id, 0 );
