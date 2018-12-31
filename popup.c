@@ -1222,8 +1222,8 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 	if (flags)
 		LOG_ERROR("%s: flags=%d set but not yet supported\n", __FUNCTION__, flags );
 	
-	/*	check for "CLOSE" && size==0 : just return */
-	if( !size && strcmp(title, POPUP_CLOSE) == 0 ) {
+	/*	size==0 : 'close' -> just return - don't create a 'close' popup */
+	if( !size ) {
 		return;
 	}
 	/* Close popup if the same id */
