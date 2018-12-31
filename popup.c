@@ -49,8 +49,6 @@
 
 #endif /* POPUP_DEBUG */
 
-static const char* POPUP_CLOSE = "CLOSE";
-
 static list_node_t *popup_list;
 static int popup_position_x = 500/2;
 static int popup_position_y = 480/4;
@@ -1222,13 +1220,14 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 	if (flags)
 		LOG_ERROR("%s: flags=%d set but not yet supported\n", __FUNCTION__, flags );
 	
-	/*	size==0 : 'close' -> just return - don't create a 'close' popup */
-	if( !size ) {
-		return;
-	}
-	/* Close popup if the same id */
+	/* Close popup if the same id 
+	 * return on size==0
+	 * */
 	if ( popup_node_find_by_id( popup_id ) != NULL ) {
 		popup_node_destroy(popup_node_find_by_id( popup_id ));
+		if( !size ) {
+			return;
+		}
 	}
 
 	new_popup = popup_create( title, popup_id, 0 );
