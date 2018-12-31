@@ -48,11 +48,7 @@
 #define POPUP_FUNC_LEAVE /* */
 
 #endif /* POPUP_DEBUG */
-//#define POPUP_CLOSE "CLOSE"
-#define POPUP_CLOSE_MAGIC_SIZE  64
-#define POPUP_CLOSE_MAGIC_NUMBER 14
-#define POPUP_CLOSE_MAGIC_ID 5
-//static popup_node_t *last_popup = NULL;
+
 static const char* POPUP_CLOSE = "CLOSE";
 
 static list_node_t *popup_list;
@@ -1226,12 +1222,10 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 	if (flags)
 		LOG_ERROR("%s: flags=%d set but not yet supported\n", __FUNCTION__, flags );
 	
-	/*	check for "CLOSE" via title, size_hint - just return */
-	// printf("id = %d , title = %s, text = %s, size_hint = %d, size = %ld, strcmp = %d\n", popup_id, title, text, size_hint, size, strcmp(title, POPUP_CLOSE) );
-	if( !size && strcmp(title, POPUP_CLOSE) == 0 ){
+	/*	check for "CLOSE" && size==0 : just return */
+	if( !size && strcmp(title, POPUP_CLOSE) == 0 ) {
 		return;
 	}
-	
 	/* Close popup if the same id */
 	if ( popup_node_find_by_id( popup_id ) != NULL ) {
 		popup_node_destroy(popup_node_find_by_id( popup_id ));
