@@ -1216,19 +1216,24 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 	FETCH_SIZESTRING( title );
 	FETCH_U16( size_hint );
 	FETCH_SIZESTRING( text );
-	
+
 	if (flags)
 		LOG_ERROR("%s: flags=%d set but not yet supported\n", __FUNCTION__, flags );
-	
-	/* close popup if the same id */
+#ifdef OTHER_LIFE
+	/* close popup if the same popup_id */
 	if ( popup_node_find_by_id( popup_id ) != NULL ) {
 		popup_node_destroy(popup_node_find_by_id( popup_id ));
 	}
-	/* return on size==0 */
+	/* size==0 means server sent 'close popup' */
 	if( !size ) {
 		return;
 	}
-
+#else
+	/* Ensure there is no popup with this ID */
+	if ( popup_node_find_by_id( popup_id ) != NULL ) {
+		return;
+	}
+#endif
 	new_popup = popup_create( title, popup_id, 0 );
 
 	POPUP_NETWORK_ASSERT( new_popup != NULL );
