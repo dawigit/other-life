@@ -32,6 +32,7 @@
 #include "errors.h"
 #include "translate.h"
 
+#include "named_colours.h"
 #undef POPUP_DEBUG
 
 #ifdef POPUP_DEBUG
@@ -616,7 +617,7 @@ static int popup_display_object( popup_t *this_popup, window_info *win )
     POPUP_FUNC_ENTER;
 
 	if ( this_popup->text.str ) {
-		glColor3f(0.3,0.6,1.0);
+		elglColourN("popup.text");
 
 		draw_string_zoomed(POPUP_TOP_TEXT_LEFT_MARGIN,
 						   POPUP_TOP_TEXT_TOP_MARGIN,
@@ -659,16 +660,16 @@ static int popup_display_object( popup_t *this_popup, window_info *win )
 
 					if ( this_option->type == OPTION_TYPE_DISPLAYTEXT || this_option->type == OPTION_TYPE_TEXTENTRY )
 					{
-						glColor3f(0.3,0.6,1.0);
+						elglColourN("popup.item");
 					} else {
 						if ( is_mouse_over( win, POPUP_OPTION_TEXT_LEFT_MARGIN - offset_for_radio,
 										   this_option->computed_y_pos,
 										   this_option->text.width + POPUP_OPTION_TEXT_LEFT_MARGIN,
 										   this_option->text.height ) ) {
-							glColor3f(1.0,1.0,1.0);
+							elglColourN("popup.item.mousehighlight");
 						}
 						else {
-							glColor3f(0.6,0.3,1.0);
+							elglColourN("popup.item02");
 						}
 					}
 
@@ -1219,12 +1220,21 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 
 	if (flags)
 		LOG_ERROR("%s: flags=%d set but not yet supported\n", __FUNCTION__, flags );
-
+#ifdef OTHER_LIFE
+	/* close popup if the same popup_id */
+	if ( popup_node_find_by_id( popup_id ) != NULL ) {
+		popup_node_destroy(popup_node_find_by_id( popup_id ));
+	}
+	/* size==0 means server sent 'close popup' */
+	if( !size ) {
+		return;
+	}
+#else
 	/* Ensure there is no popup with this ID */
 	if ( popup_node_find_by_id( popup_id ) != NULL ) {
 		return;
 	}
-
+#endif
 	new_popup = popup_create( title, popup_id, 0 );
 
 	POPUP_NETWORK_ASSERT( new_popup != NULL );
