@@ -669,7 +669,7 @@ static int popup_display_object( popup_t *this_popup, window_info *win )
 							elglColourN("popup.item.mousehighlight");
 						}
 						else {
-							elglColourN("popup.item02");
+							elglColourN("popup.item.alt");
 						}
 					}
 
@@ -1220,6 +1220,7 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 
 	if (flags)
 		LOG_ERROR("%s: flags=%d set but not yet supported\n", __FUNCTION__, flags );
+
 #ifdef OTHER_LIFE
 	/* close popup if the same popup_id */
 	if ( popup_node_find_by_id( popup_id ) != NULL ) {
@@ -1235,6 +1236,7 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 		return;
 	}
 #endif
+
 	new_popup = popup_create( title, popup_id, 0 );
 
 	POPUP_NETWORK_ASSERT( new_popup != NULL );
