@@ -25,12 +25,10 @@
 #include "font.h"
 #include "list.h"
 #include "asc.h"
-#ifdef OPENGL_TRACE
-#include "gl_init.h"
-#endif
 #include "misc.h"
 #include "errors.h"
 #include "translate.h"
+#include "gl_init.h"
 
 #undef POPUP_DEBUG
 
@@ -51,8 +49,8 @@
 
 static list_node_t *popup_list;
 static list_node_t *popup_old_list;		/* store popup for repositioning new popups at the last location */
-static int popup_position_x = 500/2;
-static int popup_position_y = 480/4;
+static int popup_position_x = 0;
+static int popup_position_y = 0;
 
 /* scaled vars */
 static float popup_font_zoom = 0;
@@ -259,9 +257,8 @@ popup_t *popup_allocate()
 		new_popup->realized = 0;
 		new_popup->has_send_button = 0;
 		new_popup->button_widget_id = 0;
-
-		/* Hardcoded X size for now. Can be overriden using size_hints */
-		new_popup->width = (int)(0.5 + window_scale * 400);
+		new_popup->width = 0;
+		new_popup->height = 0;
 
 	}
 	return new_popup;
@@ -291,6 +288,8 @@ static void flowing_text_free( flowing_text_t *text )
 
 static void popup_set_sizehint( popup_t *this_popup, unsigned int size )
 {
+	this_popup->width = 0;
+	this_popup->height = 0;
 	if (size>0)
 		this_popup->width = (int)(0.5 + window_scale * size);
 }
@@ -663,7 +662,6 @@ static int popup_display_object( popup_t *this_popup, window_info *win )
 	}
 
 	/* Draw options, if present */
-
 	/* Iterate over the groups */
 
 	if ( this_popup->grouped_options ) {
@@ -891,11 +889,17 @@ int popup_send_button_clicked(widget_list *w, int mx, int my, Uint32 flags)
 
 static void popup_create_window(popup_t *this_popup)
 {
-	list_node_t *group;
-	popup_old_t *popup_old;
+	list_node_t *group = NULL;
+	popup_old_t *popup_old = NULL;
 	if(popup_node_old_find_by_id(this_popup->id))
 	{
 		popup_old = POPUP_OLD_NODE(popup_node_old_find_by_id(this_popup->id));
+		if ( (popup_old->old_pos_x + this_popup->width) > window_width ){
+			popup_old->old_pos_x = (window_width/2)-(this_popup->width/2);
+		}
+		if ( (popup_old->old_pos_y + this_popup->height) > window_height ){
+			popup_old->old_pos_y = (window_height/2)-(this_popup->height/2);
+		}
 	}
 
 	POPUP_FUNC_ENTER;
@@ -903,8 +907,8 @@ static void popup_create_window(popup_t *this_popup)
 	this_popup->win = create_window(this_popup->title,
 									game_root_win,
 									0,
-									popup_old?popup_old->old_pos_x : popup_position_x,
-                                    popup_old?popup_old->old_pos_y : popup_position_y,
+									popup_old?popup_old->old_pos_x : (window_width/2)-(this_popup->width/2),
+									popup_old?popup_old->old_pos_y : (window_height/2)-(this_popup->height/2),
 									this_popup->width,
 									this_popup->height,
 									ELW_USE_UISCALE|ELW_WIN_DEFAULT);
@@ -985,7 +989,7 @@ popup_old_t *popup_old_create( popup_t* popup )
 			fresh = 1;
 		}
 		
-		if (NULL!=old_popup) {
+		if (NULL!=old_popup && popup->win != -1) {
 			old_popup->id = popup->id;
 			old_popup->old_pos_x = get_window_info(popup->win)->cur_x;
 			old_popup->old_pos_y = get_window_info(popup->win)->cur_y;
@@ -1310,7 +1314,9 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 	POPUP_NETWORK_ASSERT( new_popup != NULL );
 
 	popup_scale_vars();
-	popup_set_text( new_popup, text );
+	if(text[0]){
+		popup_set_text( new_popup, text );
+	}
 	popup_set_sizehint( new_popup, size_hint );
 
 	/* Handle options. We reuse the title char array here. */
@@ -1323,7 +1329,7 @@ void popup_create_from_network( const unsigned char *payload, size_t size )
 		case OPTION_TYPE_TEXTENTRY:
 			FETCH_SIZESTRING( title );
 
-            popup_add_option_textentry( new_popup, option_group, title );
+			popup_add_option_textentry( new_popup, option_group, title );
 
 			break;
 		case OPTION_TYPE_DISPLAYTEXT:

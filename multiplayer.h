@@ -24,6 +24,7 @@ extern int port; /*!< the server port we use */
 extern unsigned char server_address[60]; /*!< the server address we use */
 
 extern TCPsocket my_socket; /*!< our TCP socket to communiate with the server */
+extern IPaddress my_ip;
 
 /*! \name Version information 
  * @{ */
@@ -242,6 +243,8 @@ int set_date(const char *the_string);
  * \retval	string pointer	NULL is no date ready
 */
 const char *get_date(void (*callback)(const char *));
+
+void send_version_to_server(IPaddress *ip);
 
 #ifdef __cplusplus
 } // extern "C"

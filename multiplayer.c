@@ -57,6 +57,7 @@
 #include "threads.h"
 
 #ifdef OTHER_LIFE
+  #include "gl_init.h"
   #include "ext_protocol.h"
 #endif
 
@@ -72,6 +73,7 @@ int icon_in_spellbar= -1;
 int port= 2000;
 unsigned char server_address[60];
 TCPsocket my_socket= 0;
+IPaddress my_ip;
 SDLNet_SocketSet set= 0;
 #define MAX_TCP_BUFFER  8192
 Uint8 tcp_in_data[MAX_TCP_BUFFER];
@@ -506,7 +508,12 @@ void send_version_to_server(IPaddress *ip)
         #endif // LINUX
         #ifdef OSX
         str[15] |= VERFLAGS_OSX;
-        #endif // OSX
+		#endif // OSX
+		
+		// send width and height
+		*((short *)(str+19))= SDL_SwapLE16((short)window_width);
+		*((short *)(str+21))= SDL_SwapLE16((short)window_height);
+	len+=4;
 #endif	// if defined(OTHER_LIFE) && defined(OTHER_LIFE_EXTENDED_CHAT)
 	my_tcp_send(my_socket, str, len);
 }
@@ -572,6 +579,7 @@ void connect_to_server()
 
 	//send the current version to the server
 	send_version_to_server(&ip);
+	my_ip = ip;
 
 #ifdef OTHER_LIFE
 	{
