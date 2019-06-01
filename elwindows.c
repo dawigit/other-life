@@ -1992,7 +1992,7 @@ int get_window_scroll_pos(int win_id)
 		return 0;
 }
 
-window_info	*get_window_info(int win_id)
+window_info *get_window_info(int win_id)
 {
 	if(win_id < 0 || win_id >= windows_list.num_windows)	return NULL;
 	for (int i=0; i < windows_list.num_windows; i++)

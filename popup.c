@@ -891,24 +891,37 @@ static void popup_create_window(popup_t *this_popup)
 {
 	list_node_t *group = NULL;
 	popup_old_t *popup_old = NULL;
+	int win_x = (window_width/2)-(this_popup->width/2);
+	int win_y = (window_height/2)-(this_popup->height/2);
+	
 	if(popup_node_old_find_by_id(this_popup->id))
 	{
 		popup_old = POPUP_OLD_NODE(popup_node_old_find_by_id(this_popup->id));
-		if ( (popup_old->old_pos_x + this_popup->width) > window_width ){
-			popup_old->old_pos_x = (window_width/2)-(this_popup->width/2);
-		}
-		if ( (popup_old->old_pos_y + this_popup->height) > window_height ){
-			popup_old->old_pos_y = (window_height/2)-(this_popup->height/2);
-		}
+		win_x= popup_old->old_pos_x;
+		win_y= popup_old->old_pos_y;
 	}
+	// bounds checking, keep enough on the screen (not trying for all)
+	if (win_x + this_popup->width/2 >= window_width -40) {    // don't go off the right edge
+		win_x= (window_width/2)-(this_popup->width/2);    // try to center, then check min value
+	}
+	if (win_x + (this_popup->width/2) < 0 ){    // watch the left edge, is at least half visible?
+		win_x= 0;
+	}
+	if (win_y >= window_height - (POPUP_TOP_TEXT_TOP_MARGIN+3*POPUP_TEXTENTRY_HEIGHT) ){ // don't let the top go off the bottom of the screen
+		win_y= (window_height/2)-(this_popup->height/2);    // center then check min value
+	}
+	if (win_y < 0) { //don't let the top go off the top of the screen
+		win_y= 0;
+	}
+
 
 	POPUP_FUNC_ENTER;
 
 	this_popup->win = create_window(this_popup->title,
 									game_root_win,
 									0,
-									popup_old?popup_old->old_pos_x : (window_width/2)-(this_popup->width/2),
-									popup_old?popup_old->old_pos_y : (window_height/2)-(this_popup->height/2),
+									win_x, 
+									win_y, 
 									this_popup->width,
 									this_popup->height,
 									ELW_USE_UISCALE|ELW_WIN_DEFAULT);
@@ -917,6 +930,7 @@ static void popup_create_window(popup_t *this_popup)
 	set_window_handler( this_popup->win, ELW_HANDLER_CLOSE, &popup_close_handler);
 	set_window_handler( this_popup->win, ELW_HANDLER_CLICK, &popup_click_handler);
 	set_window_handler( this_popup->win, ELW_HANDLER_UI_SCALE, &popup_close_handler); /* just close if ui rescaled */
+
 
 	if (this_popup->has_send_button) {
 		this_popup->button_widget_id = button_add( this_popup->win, NULL, button_send,
