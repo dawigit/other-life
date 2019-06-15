@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <SDL.h>
-#include <SDL_keysym.h>
+#include <SDL_keycode.h>
 #include "widgets.h"
 #include "asc.h"
 #include "chat.h"

@@ -311,7 +311,7 @@ CHECK_GL_ERRORS();
 
 int display_server_sel_root_handler (window_info *win)
 {
-	if (SDL_GetAppState () & SDL_APPACTIVE)
+	if (sdlWindow_is_active)
 	{	
 		draw_console_pic (cons_text);
 		draw_server_sel_interface (win->len_x, win->len_y);

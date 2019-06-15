@@ -406,7 +406,7 @@ void open_web_link(const char * url)
 		safe_strncpy(cp_url, url, strlen(url)+1);
 
 		// windows needs to spawn it in its own thread
-		SDL_CreateThread(only_call_from_open_web_link__go_to_url, cp_url);
+		SDL_CreateThread(only_call_from_open_web_link__go_to_url, "URLThread", cp_url);
 	} else {
 		ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNOACTIVATE); //this returns an int we could check for errors, but that's mainly when you use shellexecute for local files
 #endif  //_WIN32

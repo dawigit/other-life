@@ -190,7 +190,7 @@ int start_rendering()
 	queue_initialise(&message_queue);
 	network_thread_data[0] = message_queue;
 	network_thread_data[1] = &done;
-	network_thread = SDL_CreateThread(get_message_from_server, network_thread_data);
+	network_thread = SDL_CreateThread(get_message_from_server, "NetworkThread", network_thread_data);
 
 	/* Loop until done. */
 	while( !done )

@@ -7,6 +7,7 @@
 #define __GL_INIT_H__
 
 #include "load_gl_extensions.h"
+#include "SDL.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +45,13 @@ extern int use_draw_range_elements;  /*!< specifies if we use glDrawRangeElement
 /*! @} */
 extern float anisotropic_filter;
 extern int gl_extensions_loaded; /*< specifies if the OpenGL extensions were loaded or not */
+extern SDL_Window* screen;
+extern int sdl_num_video_displays;
+extern SDL_Window *sdlWindow;
+extern SDL_Renderer *sdlRenderer;
+
+
+
 /*!
  * \ingroup video
  * \brief   initializes the selected video mode

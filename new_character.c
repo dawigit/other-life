@@ -16,6 +16,7 @@
 #include "cursors.h"
 #include "draw_scene.h"
 #include "elconfig.h"
+#include "events.h"
 #include "gamewin.h"
 #include "gl_init.h"
 #include "global.h"
@@ -413,7 +414,7 @@ static int display_newchar_handler (window_info *win)
 
 	reset_under_the_mouse();
 
-	if (SDL_GetAppState() & SDL_APPACTIVE)
+	if (sdlWindow_is_active)
 	{
 
 		draw_global_light ();

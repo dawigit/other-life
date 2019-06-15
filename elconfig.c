@@ -780,9 +780,9 @@ int switch_video(int mode, int full_screen)
 
 	int index = mode - 1;
 
-	int flags = SDL_OPENGL;
+	int flags = SDL_WINDOW_OPENGL;
 	if (full_screen)
-		flags |= SDL_FULLSCREEN;
+		flags |= SDL_WINDOW_FULLSCREEN;
 
 	if(mode == 0 && !full_screen) {
 		win_width = video_user_width;
@@ -808,17 +808,13 @@ int switch_video(int mode, int full_screen)
 
 	destroy_fbos();
 
-	if (!SDL_VideoModeOK(win_width, win_height, win_bpp, flags)) {
-		LOG_TO_CONSOLE(c_red2, invalid_video_mode);
-		return 0;
-	} else {
-		set_new_video_mode(full_screen, mode);
+	set_new_video_mode(full_screen, mode);
 #ifndef MAP_EDITOR2
 		if(items_win >= 0) {
 			windows_list.window[items_win].show_handler(&windows_list.window[items_win]);
 		}
 #endif
-	}
+	
 	build_fbos();
 	return 1;
 }
@@ -1240,7 +1236,7 @@ void change_gamma(float *pointer, float *value)
 {
 	*pointer= *value;
 	if(video_mode_set && !disable_gamma_adjust) {
-		SDL_SetGamma(*value, *value, *value);
+		SDL_SetWindowBrightness(sdlWindow, *value);
 	}
 }
 

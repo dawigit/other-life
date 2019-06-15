@@ -86,7 +86,7 @@ static int display_console_handler (window_info *win)
 	}
 
 	// are we actively drawing things?
-	if (SDL_GetAppState () & SDL_APPACTIVE)
+	if(SDL_GetWindowFlags(sdlWindow) & SDL_WINDOW_MOUSE_FOCUS)
 	{
 		set_font(chat_font);	// switch to the chat font
 		if (console_text_changed)

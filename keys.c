@@ -2,7 +2,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <ctype.h>
-#include <SDL_keysym.h>
+#include <SDL_keycode.h>
+//#include <SDL_keysym.h>
 #include "errors.h"
 #include "keys.h"
 #include "asc.h"
@@ -492,7 +493,7 @@ void read_key_config(void)
 	char line[512];
 	el_file_ptr f;
 	size_t num_keys = sizeof(key_store)/sizeof(key_store_entry);
-	Uint32 last_key_value = SDLK_LAST;
+	Uint32 last_key_value = SDLK_SLEEP;
 	size_t i;
 
 	f = el_open_custom("key.ini");
@@ -503,7 +504,7 @@ void read_key_config(void)
 		el_close(f);
 	}
 
-	// look for unassigned keys and assign one up from SDLK_LAST
+	// look for unassigned keys and assign one up from SDLK_SLEEP
 	for (i=0; i<num_keys; i++)
 		if (*key_store[i].value == 0)
 			*key_store[i].value = ++last_key_value;

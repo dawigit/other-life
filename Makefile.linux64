@@ -7,14 +7,14 @@ OTHER_LIFE = -DOTHER_LIFE -DOTHER_LIFE_EXTENDED_CHAT
 
 # basic compiling and linking - rarely changed
 OPTIONS = $(OTHER_LIFE) -DLINUX -DELC $(foreach FEATURE, $(FEATURES), -D$(FEATURE)) -D_7ZIP_ST $(GIT_VERSION)
-CFLAGS=$(PLATFORM) $(CWARN) -O0 -ggdb -pipe $(OPTIONS) $(shell sdl-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
-_CFLAGS=$(PLATFORM) -O2 -fomit-frame-pointer -ffast-math -pipe $(OPTIONS) $(shell sdl-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
-CXXFLAGS=$(PLATFORM) $(CXXWARN) -O0 -ggdb -pipe $(OPTIONS) $(shell sdl-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
-_CXXFLAGS=$(PLATFORM) -O3 -fomit-frame-pointer -ffast-math -pipe $(OPTIONS) $(shell sdl-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
+CFLAGS=$(PLATFORM) $(CWARN) -O0 -ggdb -pipe $(OPTIONS) $(shell sdl2-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
+_CFLAGS=$(PLATFORM) -O2 -fomit-frame-pointer -ffast-math -pipe $(OPTIONS) $(shell sdl2-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
+CXXFLAGS=$(PLATFORM) $(CXXWARN) -O0 -ggdb -pipe $(OPTIONS) $(shell sdl2-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
+_CXXFLAGS=$(PLATFORM) -O3 -fomit-frame-pointer -ffast-math -pipe $(OPTIONS) $(shell sdl2-config --cflags) $(shell xml2-config --cflags) -fno-strict-aliasing $(EXTRA_INCLUDES)
 
 PNG_SCREENSHOT_LIBS = -lpng
-LDFLAGS=$(shell sdl-config --libs) $(shell xml2-config --libs) -lSDL_net \
-	-lSDL_image -lopenal $(XDIR) -lGL -lGLU -lcal3d -lm $(EXTRA_LIBS) \
+LDFLAGS=$(shell sdl2-config --libs) $(shell xml2-config --libs) -lSDL2_net \
+	-lSDL2_image -lopenal $(XDIR) -lGL -lGLU -lcal3d -lm $(EXTRA_LIBS) \
 	-lz -lpng -lvorbis -lvorbisfile -lstdc++ -lX11 \
 	$(foreach FEATURE, $(FEATURES), $($(FEATURE)_LIBS))
 _LDFLAGS=$(XDIR) -lGL -lpthread -lstdc++
@@ -23,7 +23,7 @@ _LDFLAGS=$(XDIR) -lGL -lpthread -lstdc++
 # Install these packages in addition to those required for a standard build
 # libasound2-dev libaudio-dev libartsc0-dev libesd0-dev libpulse-dev libaa1-dev libgpmg1-dev libdirectfb-dev
 LIBD=/usr/lib/x86_64-linux-gnu
-STATICLIBS=$(LIBD)/libSDL_net.a $(LIBD)/libSDL.a $(LIBD)/libSDL_image.a $(LIBD)/libopenal.a $(LIBD)/libvorbisfile.a $(LIBD)/libvorbis.a $(LIBD)/libogg.a $(LIBD)/libxml2.a $(LIBD)/libcal3d.a $(LIBD)/libpng.a $(LIBD)/libaudio.a $(LIBD)/libartsc.a $(LIBD)/libesd.a $(LIBD)/libpulse-simple.a $(LIBD)/libpulse.a $(LIBD)/libaa.a $(LIBD)/libgpm.a $(LIBD)/libcurses.a $(LIBD)/libslang.a $(LIBD)/libdirectfb.a $(LIBD)/libdirect.a $(LIBD)/libfusion.a $(LIBD)/librt.a $(LIBD)/libtiff.a $(LIBD)/libjpeg.a $(LIBD)/libGLU.a $(LIBD)/libz.a
+STATICLIBS=$(LIBD)/libSDL2_net.a $(LIBD)/libSDL2.a $(LIBD)/libSDL2_image.a $(LIBD)/libopenal.a $(LIBD)/libvorbisfile.a $(LIBD)/libvorbis.a $(LIBD)/libogg.a $(LIBD)/libxml2.a $(LIBD)/libcal3d.a $(LIBD)/libpng.a $(LIBD)/libaudio.a $(LIBD)/libartsc.a $(LIBD)/libesd.a $(LIBD)/libpulse-simple.a $(LIBD)/libpulse.a $(LIBD)/libaa.a $(LIBD)/libgpm.a $(LIBD)/libcurses.a $(LIBD)/libslang.a $(LIBD)/libdirectfb.a $(LIBD)/libdirect.a $(LIBD)/libfusion.a $(LIBD)/librt.a $(LIBD)/libtiff.a $(LIBD)/libjpeg.a $(LIBD)/libGLU.a $(LIBD)/libz.a
 # $(LIBD)/libasound.a
 
 # the objects we need
@@ -66,7 +66,7 @@ COBJS=2d_objects.o 3d_objects.o \
 	
 CXXOBJS=achievements.o actor_init.o cal3d_wrapper.o command_queue.o \
 	context_menu.o elloggingwrapper.o engine/logging.o exceptions/extendedexception.o \
-	hud_indicators.o hud_timer.o icon_window.o io/cal3d_io_wrapper.o item_info.o item_lists.o named_colours.o \
+	hud_indicators.o hud_timer.o icon_window.o igl.o io/cal3d_io_wrapper.o isdl.o item_info.o item_lists.o named_colours.o \
 	optimizer.o password_manager.o quest_log.o select.o sendvideoinfo.o trade_log.o user_menus.o \
 	xml/xmlhelper.o eye_candy_wrapper.o \
 	engine/hardwarebuffer.o xor_cipher.o \

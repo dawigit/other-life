@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "SDL.h"
+#include "SDL_net.h"
 #ifdef __GNUC__
  #include <dirent.h>
  #include <unistd.h>
@@ -718,7 +720,7 @@ void init_stuff(void)
 			exit(1);
 		}
 	init_video();
-
+/*
 #ifdef MAP_EDITOR2
 	SDL_WM_SetCaption( "Map Editor", "mapeditor" );
 #else
@@ -728,7 +730,7 @@ void init_stuff(void)
 	SDL_WM_SetCaption( win_principal, "eternallands" );   
    #endif
 #endif
-
+*/
 #ifdef OSX
 	// don't emulate a 3 button mouse except you still have a 1 button mouse, ALT+leftclick doesn't work with the emulation
 	if (!emulate3buttonmouse) SDL_putenv("SDL_HAS3BUTTONMOUSE=1");
@@ -944,7 +946,7 @@ void init_stuff(void)
 
 	update_loading_win(init_display_str, 5);
 	if (!disable_gamma_adjust)
-		SDL_SetGamma(gamma_var, gamma_var, gamma_var);
+		SDL_SetWindowBrightness(sdlWindow, gamma_var);
 
 	draw_scene_timer= SDL_AddTimer (1000/(18*4), my_timer, NULL);
 	misc_timer= SDL_AddTimer (500, check_misc, NULL);

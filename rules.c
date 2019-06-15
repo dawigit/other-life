@@ -18,6 +18,7 @@
 #include "draw_scene.h"
 #include "elwindows.h"
 #include "errors.h"
+#include "events.h"
 #include "gamewin.h"
 #include "gl_init.h"
 #include "hud.h"
@@ -724,7 +725,7 @@ int rules_root_win = -1;
 
 static int display_rules_root_handler (window_info *win)
 {
-	if (SDL_GetAppState () & SDL_APPACTIVE)
+	if (sdlWindow_is_active)
 	{
 		if(virt_win_offset < 0) virt_win_offset=0;
 		draw_console_pic (cons_text);

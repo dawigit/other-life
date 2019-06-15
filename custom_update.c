@@ -293,8 +293,7 @@ void init_custom_update()
 		update_thread_data[i].name = update_names[i];
 		update_thread_data[i].running = 1;
 		update_thread_data[i].error = 0;
-		update_thread_data[i].thread = SDL_CreateThread(
-			custom_update_thread, &update_thread_data[i]);
+		update_thread_data[i].thread = SDL_CreateThread(custom_update_thread, "CustomUpdateThread", &update_thread_data[i]);
 	}
 	free(str);
 }

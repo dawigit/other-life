@@ -260,7 +260,7 @@ static void do_updates(void)
 		return;
 	}
 	// start the background process
-	SDL_CreateThread(&do_threaded_update, NULL);
+	SDL_CreateThread(&do_threaded_update, "UpdateThread", NULL);
 }
 
 
@@ -515,7 +515,7 @@ static void http_threaded_get_file(char *server, char *path, FILE *fp, Uint8 *md
 	// NOTE: it is up to the EVENT handler to close the handle & free the spec pointer in data1
 
 	// start the download in the background
-	thread_list[spec->thread_index] = SDL_CreateThread(&http_get_file_thread_handler, (void *) spec);
+	thread_list[spec->thread_index] = SDL_CreateThread(&http_get_file_thread_handler, "HTTPDownloadThread", (void *) spec);
 }
 
 
@@ -702,7 +702,7 @@ CHECK_GL_ERRORS();
 
 static int display_update_root_handler (window_info *win)
 {
-	if (SDL_GetAppState () & SDL_APPACTIVE)
+	if (sdlWindow_is_active)
 	{	
 		draw_console_pic (cons_text);
 		draw_update_interface (win);

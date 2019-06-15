@@ -346,9 +346,9 @@ void build_video_mode_array()
 	int flags;
 
 	if (full_screen)
-		flags=SDL_OPENGL|SDL_FULLSCREEN;
+		flags=SDL_WINDOW_OPENGL|SDL_WINDOW_FULLSCREEN;
 	else
-		flags=SDL_OPENGL;
+		flags=SDL_WINDOW_OPENGL;
 
 	for(i = 0; i < video_modes_count; i++)
 	{
@@ -362,7 +362,7 @@ void build_video_mode_array()
 #endif
 			) 
 		{
-			if (SDL_VideoModeOK(video_modes[i].width, video_modes[i].height, video_modes[i].bpp, flags))
+//			if (SDL_VideoModeOK(video_modes[i].width, video_modes[i].height, video_modes[i].bpp, flags))
 				video_modes[i].flags.supported = 1;
 		}
 
@@ -535,8 +535,9 @@ void read_mapinfo ()
 	int maps_size, imap;
 	char *cmt_pos;
 	char cont_name[64];
-	unsigned short continent, x_start, y_start, x_end, y_end;
+	unsigned short continent, x_start, y_start, x_end, y_end, x_margin, y_margin;
 	char map_name[128];
+	int num_arguments;
 	
 	maps_size = DEFAULT_CONTMAPS_SIZE;
 	continent_maps = calloc (maps_size, sizeof (struct draw_map));
@@ -559,9 +560,20 @@ void read_mapinfo ()
 				*cmt_pos = '\0';
 
 			// weather_name is optional so a valid line is 6 or more parameters read
-			if (sscanf (line, "%63s %hu %hu %hu %hu %127s %10s", cont_name, &x_start, &y_start, &x_end, &y_end, map_name, weather_name) < 6)
+			num_arguments  = sscanf (line, "%63s %hu %hu %hu %hu %127s %10s %hu %hu", cont_name, &x_start, &y_start, &x_end, &y_end, map_name, weather_name, &x_margin, &y_margin);
+			if (num_arguments < 6)
 				// not a valid line
 				continue;
+
+			// check for OL x_margin/y_margin [this is for testing/debugging]
+			if(num_arguments == 9){
+				if(x_margin == 206 && y_margin == 150){
+					printf("Valunde:\n");
+					x_margin = 206;
+					y_margin = 170;
+				}
+				printf("x_margin=%i y_margin=%i\n",x_margin,y_margin);
+			}
 
 			cont_found = 0;
 			for (i = 0; i < nr_continents; ++i)
@@ -589,6 +601,8 @@ void read_mapinfo ()
 			continent_maps[imap].y_start = y_start;
 			continent_maps[imap].x_end = x_end;
 			continent_maps[imap].y_end = y_end;
+			continent_maps[imap].x_margin = x_margin;
+			continent_maps[imap].y_margin = y_margin;
 			continent_maps[imap].name = malloc ((strlen (map_name) + 1) * sizeof (char));
 			continent_maps[imap].weather = get_weather_type_from_string(weather_name);
 			strcpy(continent_maps[imap].name, map_name);
@@ -603,6 +617,8 @@ void read_mapinfo ()
 	continent_maps[imap].y_start = 0;
 	continent_maps[imap].x_end = 0;
 	continent_maps[imap].y_end = 0;
+	continent_maps[imap].x_margin = 0;
+	continent_maps[imap].y_margin = 0;
 	continent_maps[imap].name = NULL;
 	continent_maps[imap].weather = 0;
 }
@@ -920,8 +936,13 @@ void draw_game_map (int map, int mouse_mini)
 		{
 			if (cur_map!=-1)
 			{
-				screen_x = 300 - (50 + 200 * ( (px * x_size / 6) + continent_maps[cur_map].x_start) / 512);
-				screen_y = 200 * ( (py * y_size / 6) + continent_maps[cur_map].y_start) / 512;
+				if(continent_maps[cur_map].x_margin || continent_maps[cur_map].y_margin){
+					screen_x = 300 - (50 + 200 * ( (x * x_size / 6) + continent_maps[cur_map].x_margin) / 512);
+					screen_y = 200 * ( (y * y_size / 6) + continent_maps[cur_map].y_margin) / 512;
+				}else{
+					screen_x = 300 - (50 + 200 * ( (px * x_size / 6) + continent_maps[cur_map].x_start) / 512);
+					screen_y = 200 * ( (py * y_size / 6) + continent_maps[cur_map].y_start) / 512;
+				}
 			}
 			else
 			{
@@ -965,8 +986,14 @@ void draw_game_map (int map, int mouse_mini)
 	{
 		if (cur_map != -1)
 		{
-			screen_x = 300 - (50 + 200 * ( (x * x_size / 6) + continent_maps[cur_map].x_start) / 512);
-			screen_y = 200 * ( (y * y_size / 6) + continent_maps[cur_map].y_start) / 512;
+			// use OL margins if any
+			if(continent_maps[cur_map].x_margin || continent_maps[cur_map].y_margin){
+				screen_x = 300 - (50 + 200 * ( (x * x_size / 6) + continent_maps[cur_map].x_margin) / 512);
+				screen_y = 200 * ( (y * y_size / 6) + continent_maps[cur_map].y_margin) / 512;
+			}else{
+				screen_x = 300 - (50 + 200 * ( (x * x_size / 6) + continent_maps[cur_map].x_start) / 512);
+				screen_y = 200 * ( (y * y_size / 6) + continent_maps[cur_map].y_start) / 512;
+			}
 		}
 		else
 		{

@@ -5,6 +5,7 @@
 #include "consolewin.h"
 #include "draw_scene.h"
 #include "elconfig.h"
+#include "events.h"
 #include "font.h"
 #include "gamewin.h"
 #include "gl_init.h"
@@ -32,7 +33,7 @@ void opening_win_update_zoom () {
 
 int display_opening_handler ()
 {
-	if (SDL_GetAppState () & SDL_APPACTIVE)
+	if (sdlWindow_is_active)
 	{
 		int msg, offset, iline;
 		

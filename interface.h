@@ -100,7 +100,9 @@ struct draw_map
 	unsigned short x_start;
 	unsigned short y_start;
 	unsigned short x_end;
-	unsigned short y_end;       
+	unsigned short y_end;
+	unsigned short x_margin;
+	unsigned short y_margin;
 	char *name;
 	weather_type weather;
 };

@@ -545,7 +545,8 @@ int drag_windows (int mx, int my, int dx, int dy)
 	return drag_id;
 }
 
-int	keypress_in_windows(int x, int y, Uint32 key, Uint32 unikey)
+//int	keypress_in_windows(int x, int y, Uint32 key, Uint32 unikey)
+int keypress_in_windows(int x, int y, Uint32 key, Uint32 unikey, Uint16 mods)
 {
 	int	done= 0;
 	int	id;

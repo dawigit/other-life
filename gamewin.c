@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include <SDL/SDL_keysym.h>
+#include <SDL_keycode.h>
 
 #include "gamewin.h"
 #include "actor_init.h"
@@ -131,7 +131,7 @@ void draw_special_cursors(void)
 	if (!have_mouse) return;
 #endif // NEW_CURSOR
 
-	if(!(SDL_GetAppState() & SDL_APPMOUSEFOCUS)) return;
+	if(!(SDL_GetWindowFlags(sdlWindow) & SDL_WINDOW_MOUSE_FOCUS)) return;
 
 	switch (current_cursor){
 	case (CURSOR_ATTACK):
@@ -344,7 +344,7 @@ void toggle_have_mouse(void)
 {
 	have_mouse = !have_mouse;
 	if(have_mouse){
-		SDL_WM_GrabInput(SDL_GRAB_ON);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 #ifdef NEW_CURSOR
 		if (sdl_cursors)
 #endif // NEW_CURSOR
@@ -352,7 +352,7 @@ void toggle_have_mouse(void)
 		if (fol_cam) toggle_follow_cam(&fol_cam);
 		LOG_TO_CONSOLE (c_red1, "Grab mode: press alt+g again to enter Normal mode.");
 	} else {
-		SDL_WM_GrabInput(SDL_GRAB_OFF);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 #ifdef NEW_CURSOR
 		if (sdl_cursors)
 #endif // NEW_CURSOR
@@ -1197,7 +1197,7 @@ static int display_game_handler (window_info *win)
 	reset_under_the_mouse();
 
 	// are we actively drawing things?
-	if (SDL_GetAppState() & SDL_APPACTIVE)
+	if (sdlWindow_is_active)
 	{
 
 		if (!dungeon){
@@ -1300,7 +1300,7 @@ static int display_game_handler (window_info *win)
 
 	CHECK_GL_ERRORS();
 	// if not active, dont bother drawing any more
-	if (!(SDL_GetAppState () & SDL_APPACTIVE))
+	if (!sdlWindow_is_active)
 	{
 		// remember the time stamp to improve FPS quality when switching modes
 		next_fps_time=cur_time+1000;
@@ -1507,35 +1507,7 @@ int check_quit_or_fullscreen (Uint32 key)
 
 Uint8 key_to_char (Uint32 unikey)
 {
-	// convert keypad values (numlock on)
-	if (unikey >= SDLK_KP0 && unikey <= SDLK_KP_EQUALS)
-	{
-		switch (unikey)
-		{
-			case SDLK_KP_PERIOD:
-				return SDLK_PERIOD;
-			case SDLK_KP_DIVIDE:
-				return SDLK_SLASH;
-			case SDLK_KP_MULTIPLY:
-				return SDLK_ASTERISK;
-			case SDLK_KP_MINUS:
-				return SDLK_MINUS;
-			case SDLK_KP_PLUS:
-				return SDLK_PLUS;
-			case SDLK_KP_ENTER:
-				return SDLK_RETURN;
-			case SDLK_KP_EQUALS:
-				return SDLK_EQUALS;
-			default:
-				return (unikey-SDLK_WORLD_48)&0xff;
-		}
-	}
-
-	// catch stupid windows problem if control+enter pressed (that 10 is retuned not 13)
-	if (unikey == 10)
-		return SDLK_RETURN;
-
-	return unikey & 0xff;
+    return unikey & 0xff;
 }
 
 int string_input(char *text, size_t maxlen, char ch)

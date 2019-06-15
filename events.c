@@ -11,6 +11,7 @@
 #include "gl_init.h"
 #include "global.h"
 #include "interface.h"
+#include "items.h"
 #include "keys.h"
 #include "mapwin.h"
 #include "multiplayer.h"
@@ -22,7 +23,9 @@
 #ifdef PAWN
 #include "pawn/elpawn.h"
 #endif
+#ifdef	NEW_TEXTURES
 #include "textures.h"
+#endif	/* NEW_TEXTURES */	    
 
 #ifndef WINDOWS
 #include <SDL_syswm.h>
@@ -33,7 +36,7 @@ int mark_x , mark_y;
 int max_mark = 0;
 marking marks[MAX_MARKINGS];
 
-SDLMod  mod_key_status;
+SDL_Keymod  mod_key_status;
 //Uint32 last_turn_around=0;
 
 int shift_on;
@@ -43,6 +46,31 @@ int meta_on;
 #ifdef OSX
 int osx_right_mouse_cam = 0;
 #endif
+//int el_active = 1;
+//int el_input_focus = 1;
+int sdlWindow_is_active = 0;
+int sdlWindow_input_focus = 0;
+
+void	quick_use(int use_id)
+{
+	Uint8 quick_use_str[3];
+	int	i;
+
+	for(i=0; i<ITEM_NUM_ITEMS; i++){
+		if(item_list[i].pos==use_id &&
+			item_list[i].quantity &&
+			item_list[i].use_with_inventory){
+				quick_use_str[0]= USE_INVENTORY_ITEM;
+				quick_use_str[1]= use_id;
+				quick_use_str[2]= i;
+				my_tcp_send(my_socket,quick_use_str,2);
+#ifdef NEW_SOUND
+				item_list[i].action = USE_INVENTORY_ITEM;
+#endif // NEW_SOUND
+				break;
+		}
+	}
+}
 
 int HandleEvent (SDL_Event *event)
 {
@@ -51,8 +79,9 @@ int HandleEvent (SDL_Event *event)
 	int mouse_delta_y;
 	Uint32 key = 0;
 	Uint32 flags = 0;
+	static Uint32 last_loss = 0;
 
-	if (event->type == SDL_NOEVENT) return 0;
+	if (event->type == SDL_FIRSTEVENT) return 0;
 
 	mod_key_status = SDL_GetModState();
 
@@ -67,7 +96,7 @@ int HandleEvent (SDL_Event *event)
 	if (mod_key_status & KMOD_CTRL) ctrl_on = 1;
 	else ctrl_on = 0;
 
-        if (mod_key_status & KMOD_META) meta_on = 1;
+        if (mod_key_status & KMOD_GUI) meta_on = 1;
         else meta_on = 0;
 
 	switch( event->type )
@@ -75,46 +104,79 @@ int HandleEvent (SDL_Event *event)
 
 #if !defined(WINDOWS) && !defined(OSX)
 		case SDL_SYSWMEVENT:
-			if (event->syswm.msg->event.xevent.type == SelectionNotify)
-				finishpaste(event->syswm.msg->event.xevent.xselection);
-			else if (event->syswm.msg->event.xevent.type == SelectionRequest)
-				process_copy(&event->syswm.msg->event.xevent.xselectionrequest);
+			if (event->syswm.msg->msg.x11.event.type == SelectionNotify)
+				finishpaste(event->syswm.msg->msg.x11.event.xselection);
+			else if (event->syswm.msg->msg.x11.event.type == SelectionRequest)
+				process_copy(&event->syswm.msg->msg.x11.event.xselectionrequest);
 			break;
 #endif
 
+		case SDL_WINDOWEVENT:
+			switch (event->window.event) {
+				case SDL_WINDOWEVENT_MINIMIZED:
+					sdlWindow_is_active = 0;
+					break;
+				case SDL_WINDOWEVENT_MAXIMIZED:
+					sdlWindow_is_active = 1;
+					break;
+				case SDL_WINDOWEVENT_RESTORED:
+					sdlWindow_is_active = 1;
+					break;
+				case SDL_WINDOWEVENT_FOCUS_LOST:
+					last_loss = SDL_GetTicks();
+					sdlWindow_input_focus = 0;
+					break;
+				case SDL_WINDOWEVENT_FOCUS_GAINED:
+					if (last_loss && ((SDL_GetTicks() - last_loss) > 250))
+					{
+						last_loss = 0;
+						SDL_SetModState(KMOD_NONE);
+					}
+					sdlWindow_input_focus = 1;
+					break;
+				case SDL_WINDOWEVENT_RESIZED:
+			    	 	window_width = event->window.data1;
+	      				window_height = event->window.data2;
+					resize_root_window ();
+					break;
+			}
+
 		case SDL_KEYDOWN:
-			if(!(SDL_GetAppState() & SDL_APPINPUTFOCUS)){
+		case SDL_TEXTINPUT:
+			if(!sdlWindow_input_focus){
 				break;  //don't have focus, so we shouldn't be getting keystrokes
 			}
-			key=(Uint16)event->key.keysym.sym;
-
+			key=event->key.keysym.sym;
+			if((key >= SDLK_LCTRL) && (key <= SDLK_RGUI))
+				break;
 			//use the modifiers that were on when the key was pressed, not when we go to check
 			if (event->key.keysym.mod & KMOD_SHIFT) key |= ELW_SHIFT;
 			if (event->key.keysym.mod & KMOD_CTRL) key |= ELW_CTRL;
 			//AltGR users still do not have AltGr working properly. Currently we have to accept only the left ALT key
 			//if (event->key.keysym.mod & KMOD_ALT && !(event->key.keysym.mod & KMOD_MODE)) key |= ELW_ALT;
 			if (event->key.keysym.mod & KMOD_LALT) key |= ELW_ALT;
-			if (event->key.keysym.mod & KMOD_META) key |= ELW_META;
+			if (event->key.keysym.mod & KMOD_GUI) key |= ELW_META;
 
 			if (afk_time) 
 				last_action_time = cur_time;	// Set the latest event... Don't let the modifiers ALT, CTRL and SHIFT change the state
 
 			/* any keypress forces any context menu to close */
 			cm_post_show_check(1);
-			keypress_in_windows (mouse_x, mouse_y, key, event->key.keysym.unicode);
+
+			keypress_in_windows (mouse_x, mouse_y, key, (Uint32)*event->text.text, event->key.keysym.mod);
 			break;
 
-		case SDL_VIDEORESIZE:
+/*		case SDL_VIDEORESIZE:
 	    	 	window_width = event->resize.w;
 	      		window_height = event->resize.h;
 			resize_root_window ();
 			break;
-
+*/
 		case SDL_QUIT:
 			done = 1;
 			break;
 
-		case SDL_ACTIVEEVENT:
+/*		case SDL_ACTIVEEVENT:
 			{
 				// force ALL keys up, else you can 'catch' the alt/ctrl keys due to an SDL bug ...
 				// But, compiz on Linux generates these events with every mouse click causing
@@ -130,12 +192,12 @@ int HandleEvent (SDL_Event *event)
 				}
 			}
 			break;
-
+*/
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 			// make sure the mouse button is our window, or else we ignore it
 			//Checking if we have keyboard focus for a mouse click is wrong, but SDL doesn't care to tell us we have mouse focus when someone alt-tabs back in and the mouse was within bounds of both other and EL windows. Blech.
-			if(event->button.x >= window_width || event->button.y >= window_height || !((SDL_GetAppState() & SDL_APPMOUSEFOCUS)||(SDL_GetAppState() & SDL_APPINPUTFOCUS)))
+			if(event->button.x >= window_width || event->button.y >= window_height || !((SDL_GetWindowFlags(sdlWindow) & SDL_WINDOW_MOUSE_FOCUS) || sdlWindow_input_focus))
 			{
 				break;
 			}
@@ -145,6 +207,7 @@ int HandleEvent (SDL_Event *event)
 
 			// fallthrough
 		case SDL_MOUSEMOTION:
+		case SDL_MOUSEWHEEL:
 			if (have_mouse)
 			{
 				mouse_x = window_width/2;
@@ -160,6 +223,10 @@ int HandleEvent (SDL_Event *event)
 
 				mouse_delta_x = event->motion.xrel;
 				mouse_delta_y = event->motion.yrel;
+			}
+			else if(event->type==SDL_MOUSEWHEEL)
+			{
+				SDL_GetMouseState(&mouse_x, &mouse_y);
 			}
 			else
 			{
@@ -255,11 +322,11 @@ int HandleEvent (SDL_Event *event)
 			if (left_click) flags |= ELW_LEFT_MOUSE;
 			if (middle_click || meta_on) flags |= ELW_MID_MOUSE;
 			if (right_click) flags |= ELW_RIGHT_MOUSE;
-			if (event->type == SDL_MOUSEBUTTONDOWN)
+			if (event->type == SDL_MOUSEWHEEL)
 			{
-				if (event->button.button == SDL_BUTTON_WHEELUP)
+				if (event->wheel.y > 0)
 					flags |= ELW_WHEEL_UP;
-				else if (event->button.button == SDL_BUTTON_WHEELDOWN)
+				else if (event->wheel.y < 0)
 					flags |= ELW_WHEEL_DOWN;
 			}
 
@@ -306,7 +373,9 @@ int HandleEvent (SDL_Event *event)
 #endif
 #ifdef	CUSTOM_UPDATE
 			case    EVENT_CUSTOM_UPDATE_COMPLETE:
+#ifdef	NEW_TEXTURES
 				unload_actor_texture_cache();
+#endif	/* NEW_TEXTURES */	    
 				break;
 #endif	/* CUSTOM_UPDATE */
 			}

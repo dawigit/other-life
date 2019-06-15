@@ -9,6 +9,7 @@
 #include "chat.h"
 #include "draw_scene.h"
 #include "elwindows.h"
+#include "events.h"
 #include "gamewin.h"
 #include "gl_init.h"
 #include "global.h"
@@ -121,7 +122,7 @@ int click_map_handler (window_info *win, int mx, int my, Uint32 flags)
 int display_map_handler (window_info * win)
 {
 	// are we actively drawing things?
-	if (SDL_GetAppState () & SDL_APPACTIVE)
+	if (sdlWindow_is_active)
 	{
 		draw_hud_interface (win);
 		Leave2DMode ();

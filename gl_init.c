@@ -56,6 +56,8 @@ float near_plane = 0.1f; // don't cut off anything
 float far_plane = 100.0;   // LOD helper. Cull distant objects. Lower value == higher framerates.
 float far_reflection_plane = 100.0;   // LOD helper. Cull distant reflected objects. Lower value == higher framerates.
 int gl_extensions_loaded = 0;
+SDL_Window *sdlWindow;
+SDL_Renderer *sdlRenderer;
 
 struct list {
 	int i;
@@ -188,16 +190,17 @@ void check_gl_mode()
 {
 	char str[400];
 
-	flags = SDL_OPENGL;
+	flags = SDL_WINDOW_OPENGL;
 	if(full_screen) {
-		flags |= SDL_FULLSCREEN;
+		flags |= SDL_WINDOW_FULLSCREEN;
 	}
 	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8);
 
+	sdlWindow = SDL_CreateWindow("OL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, flags);
 #ifdef	FSAA
 	if (fsaa > 1)
 	{
-		if (!SDL_VideoModeOK(window_width, window_height, bpp, flags))
+		if (!sdlWindow)
 		{
 			safe_snprintf(str, sizeof(str), "Can't use fsaa mode x%d, disabling it.", fsaa);
 			LOG_TO_CONSOLE(c_yellow1, str);
@@ -210,68 +213,65 @@ void check_gl_mode()
 #endif	/* FSAA */
 
 	//now, test if the video mode is OK...
-	if(!SDL_VideoModeOK(window_width, window_height, bpp, flags))
+	if(!sdlWindow)
+	{
+		char vid_mode_str[25];
+		safe_snprintf (vid_mode_str, sizeof (vid_mode_str), "%ix%ix%i", window_width, window_height, bpp);
+		safe_snprintf(str,sizeof(str),no_stencil_str,vid_mode_str);
+		LOG_TO_CONSOLE(c_red1,str);
+		LOG_ERROR("%s\n",str);
+
+		SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0);
+		have_stencil=0;
+		//now, test if the video mode is OK...
+		sdlWindow = SDL_CreateWindow("OL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, flags);
+		if(!sdlWindow)
 		{
-			char vid_mode_str[25];
-			safe_snprintf (vid_mode_str, sizeof (vid_mode_str), "%ix%ix%i", window_width, window_height, bpp);
-			safe_snprintf(str,sizeof(str),no_stencil_str,vid_mode_str);
+			int old_width;
+			int old_height;
+			int old_bpp;
+
+			old_width=window_width;
+			old_height=window_height;
+			old_bpp=bpp;
+
+			window_width=640;
+			window_height=480;
+			bpp=32;
+
+			safe_snprintf (vid_mode_str, sizeof (vid_mode_str), "%ix%ix%i", old_width, old_height, old_bpp);
+			safe_snprintf(str,sizeof(str),safemode_str,vid_mode_str);
 			LOG_TO_CONSOLE(c_red1,str);
-            LOG_ERROR("%s\n",str);
+			LOG_ERROR("%s\n",str);
 
-			SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0);
-			have_stencil=0;
-			//now, test if the video mode is OK...
-			if(!SDL_VideoModeOK(window_width, window_height, bpp, flags))
-				{
-					int old_width;
-					int old_height;
-					int old_bpp;
-
-					old_width=window_width;
-					old_height=window_height;
-					old_bpp=bpp;
-
-					window_width=640;
-					window_height=480;
-					bpp=32;
-
-					safe_snprintf (vid_mode_str, sizeof (vid_mode_str), "%ix%ix%i", old_width, old_height, old_bpp);
-					safe_snprintf(str,sizeof(str),safemode_str,vid_mode_str);
-					LOG_TO_CONSOLE(c_red1,str);
-					LOG_ERROR("%s\n",str);
-
-					full_screen=1;
-					video_mode=2;
-
-				}
+			full_screen=1;
+			video_mode=2;
 
 		}
+
+	}
 	else have_stencil=1;
 
 }
 
 void init_video()
 {
+	SDL_DisplayMode sdl_display_mode;
 	char str[400];
-	int rgb_size[3];
+	int rgb_size[4];
 
 	setup_video_mode(full_screen, video_mode);
 
 	/* Detect the display depth */
-	if(!bpp)
-		{
-			if ( SDL_GetVideoInfo()->vfmt->BitsPerPixel <= 8 )
-				{
-					bpp = 8;
-				}
-			else
-				if ( SDL_GetVideoInfo()->vfmt->BitsPerPixel <= 16 )
-					{
-						bpp = 16;  /* More doesn't seem to work */
-					}
-				else bpp=32;
-		}
-
+	/* Detect the display depth */
+	if(!bpp){
+		SDL_GetCurrentDisplayMode(0, &sdl_display_mode);
+		if ( SDL_BITSPERPIXEL(sdl_display_mode.format) <= 8 ){
+			bpp = 8;
+		}else if ( SDL_BITSPERPIXEL(sdl_display_mode.format) <= 16 )	{
+			bpp = 16;  /* More doesn't seem to work */
+		}else{ bpp=32;	}
+	}
 	//adjust the video mode accordingly
 	if (video_mode == 0)
 	{
@@ -326,17 +326,20 @@ void init_video()
 #endif	/* FSAA */
 	check_gl_mode();
 
-#ifdef OTHER_LIFE
-	SDL_WM_SetIcon(SDL_LoadBMP("ol_icon.bmp"), NULL);   
-#else
-	SDL_WM_SetIcon(SDL_LoadBMP("icon.bmp"), NULL);
-#endif
-        /* Set the window manager title bar */
+	sdlWindow = SDL_CreateWindow("OL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, flags);
 
+	if(sdlWindow){
+		SDL_SetWindowIcon(sdlWindow, SDL_LoadBMP("ol_icon.bmp"));
+		SDL_GL_CreateContext(sdlWindow);
+	}else{
+		SDL_Log("could not create gl context");
+		SDL_Quit();
+		exit(1);
+	}
 #ifdef	FSAA
 	if (fsaa > 1)
 	{
-		if (!SDL_SetVideoMode(window_width, window_height, bpp, flags))
+		if (!sdlWindow)
 		{
 			safe_snprintf(str, sizeof(str), "Can't use fsaa mode x%d, disabling it.", fsaa);
 			LOG_TO_CONSOLE(c_yellow1, str);
@@ -349,26 +352,25 @@ void init_video()
 #endif	/* FSAA */
 
 	//try to find a stencil buffer (it doesn't always work on Linux)
-	if(!SDL_SetVideoMode(window_width, window_height, bpp, flags))
-    	{
+	if(!sdlWindow)
+		{
 			LOG_TO_CONSOLE(c_red1,no_hardware_stencil_str);
 			LOG_ERROR("%s\n",no_hardware_stencil_str);
 			if(bpp!=32)
-            {
-                   LOG_TO_CONSOLE(c_grey1,suggest_24_or_32_bit);
-                   LOG_ERROR("%s\n",suggest_24_or_32_bit);
-            }
+			{
+				   LOG_TO_CONSOLE(c_grey1,suggest_24_or_32_bit);
+				   LOG_ERROR("%s\n",suggest_24_or_32_bit);
+			}
 			SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,16);
 			SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE,0);
-			if(!SDL_SetVideoMode( window_width, window_height, bpp, flags))
-			    {
-					LOG_ERROR("%s: %s\n", fail_opengl_mode, SDL_GetError());
-					SDL_Quit();
-					exit(1);
-			    }
+			sdlWindow = SDL_CreateWindow("OL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, flags);
+			if(!sdlWindow){
+				LOG_ERROR("%s: %s\n", fail_opengl_mode, SDL_GetError());
+				SDL_Quit();
+				exit(1);
+			}
 			have_stencil=0;
-
-    	}
+		}
 #ifdef WINDOWS
 	//try to see if we get hardware acceleration, or the windows generic shit
 	{
@@ -377,16 +379,16 @@ void init_video()
 		int have_hardware;
 
 		my_string=(GLubyte *)glGetString(GL_RENDERER);        
-        if (my_string == NULL) {
-            len = 0;
-            have_hardware = 0;
-            LOG_TO_CONSOLE(c_red1,"glGetString(GL_RENDERER) failed");
-            LOG_ERROR("%s\n","glGetString(GL_RENDERER) failed");
-        } else {
-            len=strlen(my_string);
-            have_hardware=get_string_occurance("gdi generic",my_string,len,0);
-        }
-        if(have_hardware != -1) {
+		if (my_string == NULL) {
+			len = 0;
+			have_hardware = 0;
+			LOG_TO_CONSOLE(c_red1,"glGetString(GL_RENDERER) failed");
+			LOG_ERROR("%s\n","glGetString(GL_RENDERER) failed");
+		} else {
+			len=strlen(my_string);
+			have_hardware=get_string_occurance("gdi generic",my_string,len,0);
+		}
+		if(have_hardware != -1) {
 			//let the user know there is a problem
 			LOG_TO_CONSOLE(c_red1,stencil_falls_back_on_software_accel);
 			LOG_ERROR("%s\n",stencil_falls_back_on_software_accel);
@@ -400,19 +402,19 @@ void init_video()
 			SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0);
 			SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1);
 			if(full_screen)flags=SDL_OPENGL|SDL_FULLSCREEN;
-			SDL_SetVideoMode(window_width, window_height, bpp, flags);
+			sdlWindow = SDL_CreateWindow("OL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, flags);
 			have_stencil=0;
 	
 			my_string=(GLubyte *)glGetString(GL_RENDERER);
-            if (my_string == NULL) {
-                len = 0;
-                have_hardware = 0;
-                LOG_TO_CONSOLE(c_red1,"glGetString(GL_RENDERER) failed");
-                LOG_ERROR("%s\n","glGetString(GL_RENDERER) failed");
-            } else {
-                len=strlen(my_string);
-                have_hardware=get_string_occurance("gdi generic",my_string,len,0);
-            }
+			if (my_string == NULL) {
+				len = 0;
+				have_hardware = 0;
+				LOG_TO_CONSOLE(c_red1,"glGetString(GL_RENDERER) failed");
+				LOG_ERROR("%s\n","glGetString(GL_RENDERER) failed");
+			} else {
+				len=strlen(my_string);
+				have_hardware=get_string_occurance("gdi generic",my_string,len,0);
+			}
 			if(have_hardware != -1) {
 				//wtf, this really shouldn't happen....
 				//let's try a default mode, maybe Quake 2's mode, and pray it works
@@ -431,18 +433,18 @@ void init_video()
 				window_width=640;
 				window_height=480;
 				bpp=32;
-				SDL_SetVideoMode(window_width, window_height, bpp, flags);
+				sdlWindow = SDL_CreateWindow("OL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, flags);
 				//see if it worked...
 				my_string=(GLubyte *)glGetString(GL_RENDERER);
-                if (my_string == NULL) {
-                    len = 0;
-                    have_hardware = 0;
-                    LOG_TO_CONSOLE(c_red1,"glGetString(GL_RENDERER) failed");
-                    LOG_ERROR("%s\n","glGetString(GL_RENDERER) failed");
-                } else {
-                    len=strlen(my_string);
-                    have_hardware=get_string_occurance("gdi generic",my_string,len,0);
-                }
+				if (my_string == NULL) {
+					len = 0;
+					have_hardware = 0;
+					LOG_TO_CONSOLE(c_red1,"glGetString(GL_RENDERER) failed");
+					LOG_ERROR("%s\n","glGetString(GL_RENDERER) failed");
+				} else {
+					len=strlen(my_string);
+					have_hardware=get_string_occurance("gdi generic",my_string,len,0);
+				}
 				if(have_hardware != -1) {
 					//wtf, this really shouldn't happen....
 					//let's try a default mode, maybe Quake 2's mode, and pray it works
@@ -457,7 +459,7 @@ void init_video()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	//glDepthFunc(GL_LEQUAL);
-    glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE_2D);
 	glShadeModel(GL_SMOOTH);
 	glFrontFace(GL_CCW);
 	glCullFace(GL_BACK);
@@ -481,8 +483,6 @@ void init_video()
 		glDisable(GL_POLYGON_SMOOTH);
 	}
 #endif
-	SDL_EnableKeyRepeat(200, 100);
-	SDL_EnableUNICODE(1);
 	build_video_mode_array();
 	SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &have_stencil);
 	last_texture=-1;	//no active texture
@@ -533,7 +533,7 @@ void evaluate_extension()
 		safe_snprintf(str,sizeof(str),"%s%s%s","Your graphic card/driver don't support the minimum",
 			" requirements for the next EL release. Please upgrade your driver.",
 			" If this don't help, you need a better graphic card.");
-        LOG_TO_CONSOLE(c_red1, str);
+		LOG_TO_CONSOLE(c_red1, str);
 		LOG_ERROR("%s\n",str);
 		return;
 	}
@@ -542,7 +542,7 @@ void evaluate_extension()
 		!have_extension(arb_fragment_shader)) || (has_ati_fragment_shader &&
 		!have_extension(arb_fragment_program) && !have_extension(arb_fragment_shader)))
 	{
-        safe_snprintf(str,sizeof(str),"Please update your graphic card driver!");
+		safe_snprintf(str,sizeof(str),"Please update your graphic card driver!");
 		LOG_TO_CONSOLE(c_yellow1, str);
 		LOG_WARNING("%s\n",str);
 	}
@@ -557,9 +557,9 @@ void evaluate_extension()
 		safe_snprintf(str,sizeof(str),"%s%s%s","Your graphic card supports the absolute minimum",
 			" requirements for the next EL release, but don't expect that you can use",
 			" all features.");
-        LOG_TO_CONSOLE(c_yellow1, str);
+		LOG_TO_CONSOLE(c_yellow1, str);
 		LOG_DEBUG("%s\n",str);
-        
+		
 	}
 	else
 	{
@@ -568,7 +568,7 @@ void evaluate_extension()
 			has_arb_texture_rectangle && have_extension(ext_framebuffer_object);
 		if (!options)
 		{
-            safe_snprintf(str,sizeof(str),"%s%s","Your graphic card supports the default ",
+			safe_snprintf(str,sizeof(str),"%s%s","Your graphic card supports the default ",
 				"requirements for the next EL release.");
 			LOG_TO_CONSOLE(c_green2, str);
 			LOG_DEBUG("%s\n",str);
@@ -582,15 +582,15 @@ void evaluate_extension()
 			{
 				safe_snprintf(str,sizeof(str),"%s%s","Your graphic card supports all ",
 					"features EL will use in the future.");
-                LOG_TO_CONSOLE(c_blue2, str);
-                LOG_DEBUG("%s\n",str);
+				LOG_TO_CONSOLE(c_blue2, str);
+				LOG_DEBUG("%s\n",str);
 			}
 			else
 			{
-                safe_snprintf(str,sizeof(str),"%s%s","Your graphic card supports more than the",
+				safe_snprintf(str,sizeof(str),"%s%s","Your graphic card supports more than the",
 				" default requirements for the next EL release.");
 				LOG_TO_CONSOLE(c_blue2, str);
-                LOG_DEBUG("%s\n",str);
+				LOG_DEBUG("%s\n",str);
 			}
 		}
 	}
@@ -1095,10 +1095,8 @@ void set_new_video_mode(int fs,int mode)
 	check_options();
 	reload_tab_map = 1;
 #ifdef NEW_CURSOR
-	if (!sdl_cursors)
-	{
-		SDL_ShowCursor(0);
-		SDL_WM_GrabInput(SDL_GRAB_OFF);
+	if (!sdl_cursors){
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 	}
 #endif // NEW_CURSOR
 }
@@ -1115,7 +1113,9 @@ void toggle_full_screen()
 	switch_video(video_mode, full_screen);
 	build_video_mode_array();
 	if (!disable_gamma_adjust)
-		SDL_SetGamma(gamma_var, gamma_var, gamma_var);
+		SDL_SetWindowBrightness(sdlWindow, gamma_var);
+//		SDL_SetGamma(gamma_var, gamma_var, gamma_var);
+
 	SDL_SetModState(KMOD_NONE); // force ALL keys up
 #endif
 }

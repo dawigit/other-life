@@ -274,7 +274,7 @@ void draw_3d_objects(unsigned int object_type)
 	}
 
 	// reduce CPU usage while minimized
-	if(!(SDL_GetAppState()&SDL_APPACTIVE)){
+	if(!(SDL_GetWindowFlags(sdlWindow) & SDL_WINDOW_MOUSE_FOCUS)){
 		// not actually drawing, fake it
 		// now loop through each object
 		for (i=start; i<stop; i++)
